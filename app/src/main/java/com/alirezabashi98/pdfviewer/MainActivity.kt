@@ -1,17 +1,11 @@
 package com.alirezabashi98.pdfviewer
 
 import android.annotation.SuppressLint
-import android.os.AsyncTask
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.alirezabashi98.pdfviewer.databinding.ActivityMainBinding
-import com.github.barteksc.pdfviewer.PDFView
-import java.io.BufferedInputStream
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+import java.io.File
 
 class MainActivity : AppCompatActivity(), LoadPdf {
 
@@ -32,100 +26,45 @@ class MainActivity : AppCompatActivity(), LoadPdf {
             WindowManager.LayoutParams.FLAG_SECURE
         );
 
-        RetrievePDFFromURL(binding.pdfView,statePage, binding.turnDarkModeOn.isChecked, this).execute(pdfUrl)
+        onlinePDF()
 
         binding.turnDarkModeOn.setOnClickListener {
-            RetrievePDFFromURL(binding.pdfView,statePage, binding.turnDarkModeOn.isChecked, this).execute(
-                pdfUrl
-            )
+            onlinePDF()
         }
-
-        // on below line we are calling our async
-        // task to load our pdf file from url.
-        // we are also passing our pdf view to
-        // it along with pdf view url.
-//        RetrievePDFFromURL(binding.pdfView,this,binding.turnDarkModeOn.isChecked).execute(pdfUrl)
-
-//        val file = File("/sdcard/Android/data/com.alirezabashi98.pdfviewer/files/x.pdf")
-//        val file2 = getExternalFilesDir("x.pdf")
-//
-//        binding.pdfView.fromFile(file2)
-//            .enableAnnotationRendering(true)
-//            .nightMode(binding.turnDarkModeOn.isChecked)
-//            .onPageChange { page, pageCount ->
-//                binding.numberPage.text = "${page+1} / $pageCount"
-//            }
-//            .load()
-
 
     }
 
-    // on below line we are creating a class for
-    // our pdf view and passing our pdf view
-    // to it as a parameter.
-    class RetrievePDFFromURL(
-        private val pdfView: PDFView,
-        private val defaultPage: Int = 0,
-        private val darkModel: Boolean,
-        private val loadPdf: LoadPdf
-    ) :
-        AsyncTask<String, Void, InputStream>() {
+    // on below line we are calling our async
+    // task to load our pdf file from url.
+    // we are also passing our pdf view to
+    // it along with pdf view url.
+    private fun onlinePDF() {
+        RetrievePDFFromURL(
+            binding.pdfView,
+            statePage,
+            binding.turnDarkModeOn.isChecked,
+            this
+        ).execute(pdfUrl)
+    }
 
-        // on below line we are creating a variable for our pdf view.
+    private fun offlinePDF() {
+        val file = File("/sdcard/Android/data/com.alirezabashi98.pdfviewer/files/x.pdf")
+        val file2 = getExternalFilesDir("x.pdf")
 
-        // on below line we are calling our do in background method.
-        override fun doInBackground(vararg params: String?): InputStream? {
-            // on below line we are creating a variable for our input stream.
-            var inputStream: InputStream? = null
-            try {
-                // on below line we are creating an url
-                // for our url which we are passing as a string.
-                val url = URL(params.get(0))
-
-                // on below line we are creating our http url connection.
-                val urlConnection: HttpURLConnection = url.openConnection() as HttpsURLConnection
-
-                // on below line we are checking if the response
-                // is successful with the help of response code
-                // 200 response code means response is successful
-                if (urlConnection.responseCode == 200) {
-                    // on below line we are initializing our input stream
-                    // if the response is successful.
-                    inputStream = BufferedInputStream(urlConnection.inputStream)
-                }
+        binding.pdfView.fromFile(file2)
+            .enableAnnotationRendering(true)
+            .nightMode(binding.turnDarkModeOn.isChecked)
+            .defaultPage(statePage)
+            .onPageChange { page, pageCount ->
+                this.onPage(page + 1, pageCount)
             }
-            // on below line we are adding catch block to handle exception
-            catch (e: Exception) {
-                // on below line we are simply printing
-                // our exception and returning null
-                e.printStackTrace()
-                return null;
-            }
-            // on below line we are returning input stream.
-            return inputStream;
-        }
-
-        // on below line we are calling on post execute
-        // method to load the url in our pdf view.
-        override fun onPostExecute(result: InputStream?) {
-            // on below line we are loading url within our
-            // pdf view on below line using input stream.
-            pdfView.fromStream(result)
-                .enableAnnotationRendering(true)
-                .nightMode(darkModel)
-                .defaultPage(defaultPage)
-                .onPageChange { page, pageCount ->
-                    loadPdf.onPage(page + 1, pageCount)
-                }
-                .load()
-
-        }
+            .load()
     }
 
     @SuppressLint("SetTextI18n")
     override fun onPage(page: Int, pageCount: Int) {
         binding.numberPage.text = "$page / $pageCount"
-        statePage = page-1
+        statePage = page - 1
     }
 
 
