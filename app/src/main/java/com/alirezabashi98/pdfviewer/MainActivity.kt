@@ -1,49 +1,70 @@
 package com.alirezabashi98.pdfviewer
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.os.AsyncTask
-import android.os.Build
-import androidx.annotation.RequiresApi
+import android.os.Bundle
+import android.view.WindowManager
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.alirezabashi98.pdfviewer.databinding.ActivityMainBinding
+import com.github.barteksc.pdfviewer.PDFView
 import java.io.BufferedInputStream
+import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.view.WindowManager
-import com.github.barteksc.pdfviewer.PDFView
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), LoadPdf {
 
-    // on below line we are creating
-    // a variable for our pdf view.
-    lateinit var pdfView: PDFView
+    private lateinit var binding: ActivityMainBinding
 
     // on below line we are creating a variable for our pdf view url.
     var pdfUrl = "https://nemodaan.com/dl/13991113pq82537755.pdf"
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         // user cannot screenshot
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        );
 
-        // on below line we are initializing
-        // our pdf view with its id.
-        pdfView = findViewById(R.id.pdfView)
+        this.onLoad(binding.turnDarkModeOn.isChecked)
+
+        binding.turnDarkModeOn.setOnClickListener {
+            this.onReload(binding.turnDarkModeOn.isChecked)
+        }
 
         // on below line we are calling our async
         // task to load our pdf file from url.
         // we are also passing our pdf view to
         // it along with pdf view url.
-        RetrievePDFFromURL(pdfView).execute(pdfUrl)
+//        RetrievePDFFromURL(binding.pdfView,this,binding.turnDarkModeOn.isChecked).execute(pdfUrl)
+
+//        val file = File("/sdcard/Android/data/com.alirezabashi98.pdfviewer/files/x.pdf")
+//        val file2 = getExternalFilesDir("x.pdf")
+//
+//        binding.pdfView.fromFile(file2)
+//            .enableAnnotationRendering(true)
+//            .nightMode(binding.turnDarkModeOn.isChecked)
+//            .onPageChange { page, pageCount ->
+//                binding.numberPage.text = "${page+1} / $pageCount"
+//            }
+//            .load()
+
 
     }
 
     // on below line we are creating a class for
     // our pdf view and passing our pdf view
     // to it as a parameter.
-    class RetrievePDFFromURL(pdfView: PDFView) :
+    class RetrievePDFFromURL(pdfView: PDFView, val context: Context, val darkModel: Boolean,val viewPage:TextView) :
         AsyncTask<String, Void, InputStream>() {
 
         // on below line we are creating a variable for our pdf view.
@@ -86,8 +107,22 @@ class MainActivity : AppCompatActivity() {
         override fun onPostExecute(result: InputStream?) {
             // on below line we are loading url within our
             // pdf view on below line using input stream.
-            mypdfView.fromStream(result).load()
+            mypdfView.fromStream(result)
+                .enableAnnotationRendering(true)
+                .nightMode(darkModel)
+                .onPageChange { page, pageCount ->
+                    viewPage.text = "${page+1} / $pageCount"
+                }
+                .load()
 
         }
+    }
+
+    override fun onLoad(darkMode: Boolean) {
+        RetrievePDFFromURL(binding.pdfView, this, darkMode,binding.numberPage).execute(pdfUrl)
+    }
+
+    override fun onReload(darkMode: Boolean) {
+        RetrievePDFFromURL(binding.pdfView, this, darkMode,binding.numberPage).execute(pdfUrl)
     }
 }
