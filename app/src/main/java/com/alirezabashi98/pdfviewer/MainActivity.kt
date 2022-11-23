@@ -1,17 +1,13 @@
 package com.alirezabashi98.pdfviewer
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.AsyncTask
 import android.os.Bundle
 import android.view.WindowManager
-import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.alirezabashi98.pdfviewer.databinding.ActivityMainBinding
 import com.github.barteksc.pdfviewer.PDFView
 import java.io.BufferedInputStream
-import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -20,6 +16,7 @@ import javax.net.ssl.HttpsURLConnection
 class MainActivity : AppCompatActivity(), LoadPdf {
 
     private lateinit var binding: ActivityMainBinding
+    private var statePage: Int = 0
 
     // on below line we are creating a variable for our pdf view url.
     var pdfUrl = "https://nemodaan.com/dl/13991113pq82537755.pdf"
@@ -35,10 +32,12 @@ class MainActivity : AppCompatActivity(), LoadPdf {
             WindowManager.LayoutParams.FLAG_SECURE
         );
 
-        this.onLoad(binding.turnDarkModeOn.isChecked)
+        RetrievePDFFromURL(binding.pdfView,statePage, binding.turnDarkModeOn.isChecked, this).execute(pdfUrl)
 
         binding.turnDarkModeOn.setOnClickListener {
-            this.onReload(binding.turnDarkModeOn.isChecked)
+            RetrievePDFFromURL(binding.pdfView,statePage, binding.turnDarkModeOn.isChecked, this).execute(
+                pdfUrl
+            )
         }
 
         // on below line we are calling our async
@@ -64,11 +63,15 @@ class MainActivity : AppCompatActivity(), LoadPdf {
     // on below line we are creating a class for
     // our pdf view and passing our pdf view
     // to it as a parameter.
-    class RetrievePDFFromURL(pdfView: PDFView, val context: Context, val darkModel: Boolean,val viewPage:TextView) :
+    class RetrievePDFFromURL(
+        private val pdfView: PDFView,
+        private val defaultPage: Int = 0,
+        private val darkModel: Boolean,
+        private val loadPdf: LoadPdf
+    ) :
         AsyncTask<String, Void, InputStream>() {
 
         // on below line we are creating a variable for our pdf view.
-        val mypdfView: PDFView = pdfView
 
         // on below line we are calling our do in background method.
         override fun doInBackground(vararg params: String?): InputStream? {
@@ -107,22 +110,23 @@ class MainActivity : AppCompatActivity(), LoadPdf {
         override fun onPostExecute(result: InputStream?) {
             // on below line we are loading url within our
             // pdf view on below line using input stream.
-            mypdfView.fromStream(result)
+            pdfView.fromStream(result)
                 .enableAnnotationRendering(true)
                 .nightMode(darkModel)
+                .defaultPage(defaultPage)
                 .onPageChange { page, pageCount ->
-                    viewPage.text = "${page+1} / $pageCount"
+                    loadPdf.onPage(page + 1, pageCount)
                 }
                 .load()
 
         }
     }
 
-    override fun onLoad(darkMode: Boolean) {
-        RetrievePDFFromURL(binding.pdfView, this, darkMode,binding.numberPage).execute(pdfUrl)
+    @SuppressLint("SetTextI18n")
+    override fun onPage(page: Int, pageCount: Int) {
+        binding.numberPage.text = "$page / $pageCount"
+        statePage = page-1
     }
 
-    override fun onReload(darkMode: Boolean) {
-        RetrievePDFFromURL(binding.pdfView, this, darkMode,binding.numberPage).execute(pdfUrl)
-    }
+
 }
